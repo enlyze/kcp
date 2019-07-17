@@ -49,6 +49,21 @@ const IUINT32 IKCP_PROBE_LIMIT = 120000;	// up to 120 secs to probe window
 // encode / decode
 //---------------------------------------------------------------------
 
+#ifndef __PACKED
+#if defined(__CC_ARM)
+#define __PACKED __packed
+#else
+#define __PACKED
+#endif
+#endif
+
+union __PACKED unaligned_uint {
+	unsigned char u8;
+	unsigned short u16;
+	IUINT32 u32;
+};
+
+
 /* encode 8 bits unsigned int */
 static inline char *ikcp_encode8u(char *p, unsigned char c)
 {
@@ -70,7 +85,7 @@ static inline char *ikcp_encode16u(char *p, unsigned short w)
 	*(unsigned char*)(p + 0) = (w & 255);
 	*(unsigned char*)(p + 1) = (w >> 8);
 #else
-	*(unsigned short*)(p) = w;
+	((union unaligned_uint*)p)->u16 = w;
 #endif
 	p += 2;
 	return p;
@@ -83,7 +98,7 @@ static inline const char *ikcp_decode16u(const char *p, unsigned short *w)
 	*w = *(const unsigned char*)(p + 1);
 	*w = *(const unsigned char*)(p + 0) + (*w << 8);
 #else
-	*w = *(const unsigned short*)p;
+	*w = ((const union unaligned_uint*)p)->u16;
 #endif
 	p += 2;
 	return p;
@@ -98,7 +113,7 @@ static inline char *ikcp_encode32u(char *p, IUINT32 l)
 	*(unsigned char*)(p + 2) = (unsigned char)((l >> 16) & 0xff);
 	*(unsigned char*)(p + 3) = (unsigned char)((l >> 24) & 0xff);
 #else
-	*(IUINT32*)p = l;
+	((union unaligned_uint*)p)->u32 = l;
 #endif
 	p += 4;
 	return p;
@@ -113,7 +128,7 @@ static inline const char *ikcp_decode32u(const char *p, IUINT32 *l)
 	*l = *(const unsigned char*)(p + 1) + (*l << 8);
 	*l = *(const unsigned char*)(p + 0) + (*l << 8);
 #else 
-	*l = *(const IUINT32*)p;
+	*l = ((const union unaligned_uint*)p)->u32;
 #endif
 	p += 4;
 	return p;
